@@ -1,15 +1,22 @@
+version: '3.8'
+
+volumes:
+  postgres_data:
 
 x-airflow-common: &airflow-common
   build: .
   image: weather-etl-airflow:latest
+  user: "${AIRFLOW_UID:-50000}:0"
   environment:
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${DB_USER}:${DB_PWD}@postgres:5432/${DB_NAME}
     AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    GOOGLE_APPLICATION_CREDENTIALS: /opt/airflow/credentials/gcp-credentials.json
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
+    - ./credentials:/opt/airflow/credentials
   depends_on:
     postgres:
       condition: service_healthy
@@ -17,23 +24,30 @@ x-airflow-common: &airflow-common
       condition: service_healthy
 
 services:
-  postgres: 
-    image: postgres:15  
+  postgres:
+    image: postgres:15
     environment:
-        POSTGRES_DB: ${DB_NAME}
-        POSTGRES_USER: ${DB_USER}  
-        POSTGRES_PASSWORD: ${DB_PWD}  
-    healthcheck:   
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PWD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       timeout: 5s
       interval: 5s
-      retries: 3
+      retries: 5
+
   redis:
     image: redis:6
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    command: airflow db init
 
   airflow-webserver:
     <<: *airflow-common
@@ -48,3 +62,9 @@ services:
   airflow-worker:
     <<: *airflow-common
     command: celery worker
+
+  airflow-flower:
+    <<: *airflow-common
+    command: celery flower
+    ports:
+      - "5555:5555"

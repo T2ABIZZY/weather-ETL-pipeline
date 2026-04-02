@@ -1,9 +1,13 @@
+import json
 from airflow.decorators import dag, task
 import pendulum
 import openmeteo_requests
 import pandas as pd
 import requests_cache
 from retry_requests import retry
+from datetime import datetime
+from io import BytesIO
+from google.cloud import storage, bigquery
 
 
 @dag(
@@ -52,7 +56,8 @@ def weather_pipeline():
         responses = openmeteo.weather_api(url, params = params)
 
         all_cities = []
-        for response in responses:
+        for i, response in enumerate(responses):
+            city_name = data[i]["city"]
             print(f"\nCoordinates: {response.Latitude()}°N {response.Longitude()}°E")
             print(f"Elevation: {response.Elevation()} m asl")
             print(f"Timezone: {response.Timezone()}{response.TimezoneAbbreviation()}")
@@ -76,25 +81,48 @@ def weather_pipeline():
             daily_data["temperature_2m_min"] = daily_temperature_2m_min
             daily_data["sunrise"] = daily_sunrise
             daily_data["sunset"] = daily_sunset
+            daily_data["city"] = city_name
             
             daily_dataframe = pd.DataFrame(data = daily_data)
-            all_cities.append(daily_dataframe)
+            city_records = json.loads(
+                daily_dataframe.to_json(orient="records", date_format="iso")
+            )
+            all_cities.append({
+                "city": city_name,
+                "data": city_records,
+            })
 
-        return [df.to_json(orient="records") for df in all_cities]
+        return all_cities
 
     @task()
-    def upload_to_gcs():
-        print("upload_to_gcs...")
+    def upload_to_gcs(all_cities):
+        client = storage.Client()
+        bucket = client.bucket("etl-weather-data")
+        today = datetime.today().strftime('%Y-%m-%d')
+        bolb_paths = []
+        for city in all_cities:
+            city_name = city["city"]
+            city_data = city["data"]
+            df_city = pd.DataFrame(city_data)
+            buffer = BytesIO()
+            df_city.to_parquet(buffer, index=False)
+            buffer.seek(0)
+            blob_path = f"weather/{today}/{city_name}.parquet"
+            blob = bucket.blob(blob_path)
+            blob.upload_from_file(buffer, content_type="application/octet-stream")
+            print(f"Uploaded {blob_path}")
+            bolb_paths.append(blob_path)
+        return bolb_paths
 
     @task()
-    def load_to_bigquery():
+    def load_to_bigquery(bolb_paths):
         print("load_to_bigquery...")
 
     cities = ["Paris", "Lyon", "Marseille", "Toulouse", "Bordeaux"]
     fetch = fetch_city_coordinates(cities)
     weather = fetch_weather_data(fetch)
-    upload = upload_to_gcs()
-    load = load_to_bigquery()
+    upload = upload_to_gcs(weather)
+    load = load_to_bigquery(upload)
 
     fetch >> weather >> upload >> load
 
