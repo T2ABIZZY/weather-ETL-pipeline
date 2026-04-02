@@ -99,7 +99,7 @@ def weather_pipeline():
         client = storage.Client()
         bucket = client.bucket("etl-weather-data")
         today = datetime.today().strftime('%Y-%m-%d')
-        bolb_paths = []
+        blob_paths = []
         for city in all_cities:
             city_name = city["city"]
             city_data = city["data"]
@@ -111,12 +111,23 @@ def weather_pipeline():
             blob = bucket.blob(blob_path)
             blob.upload_from_file(buffer, content_type="application/octet-stream")
             print(f"Uploaded {blob_path}")
-            bolb_paths.append(blob_path)
-        return bolb_paths
+            blob_paths.append(blob_path)
+        return blob_paths
 
     @task()
-    def load_to_bigquery(bolb_paths):
-        print("load_to_bigquery...")
+    def load_to_bigquery(blob_paths):
+        client = bigquery.Client()
+        bucket_name = "etl-weather-data"
+        dataset_id = "weather"
+        table_id = "forecast"
+        uris = [f"gs://{bucket_name}/{blob_path}" for blob_path in blob_paths]
+        job_config = bigquery.LoadJobConfig(
+            source_format=bigquery.SourceFormat.PARQUET,
+            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+        )
+        load_job = client.load_table_from_uri(uris, f"{dataset_id}.{table_id}", job_config=job_config)
+        load_job.result()
+        print(f"Loaded {uris} into {dataset_id}.{table_id}")
 
     cities = ["Paris", "Lyon", "Marseille", "Toulouse", "Bordeaux"]
     fetch = fetch_city_coordinates(cities)
