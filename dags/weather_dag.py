@@ -51,7 +51,7 @@ def weather_pipeline():
         }
         responses = openmeteo.weather_api(url, params = params)
 
-        # Process 2 locations
+        all_cities = []
         for response in responses:
             print(f"\nCoordinates: {response.Latitude()}°N {response.Longitude()}°E")
             print(f"Elevation: {response.Elevation()} m asl")
@@ -78,7 +78,9 @@ def weather_pipeline():
             daily_data["sunset"] = daily_sunset
             
             daily_dataframe = pd.DataFrame(data = daily_data)
-            print("\nDaily data\n", daily_dataframe)
+            all_cities.append(daily_dataframe)
+
+        return [df.to_json(orient="records") for df in all_cities]
 
     @task()
     def upload_to_gcs():
