@@ -39,19 +39,20 @@ def weather_pipeline():
         return city_coordinates
         
     @task()
-    def fetch_weather_data(data):
+    def fetch_weather_data(data, prev_ds=None):
         cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
         retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
         openmeteo = openmeteo_requests.Client(session = retry_session)
 
 
-        url = "https://api.open-meteo.com/v1/forecast"
+        url = "https://archive-api.open-meteo.com/v1/archive"
         params = {
             "latitude": [item["lat"] for item in data],
             "longitude": [item["lon"] for item in data],
             "daily": ["temperature_2m_max", "temperature_2m_min", "sunrise", "sunset"],
             "timezone": "Europe/Berlin",
-            "forecast_days": 14,
+            "start_date": prev_ds,
+            "end_date": prev_ds,
         }
         responses = openmeteo.weather_api(url, params = params)
 
@@ -122,7 +123,7 @@ def weather_pipeline():
         uris = [f"gs://{bucket_name}/{blob_path}" for blob_path in blob_paths]
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.PARQUET,
-            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+            write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
         )
         load_job = client.load_table_from_uri(uris, f"{dataset_id}.{table_id}", job_config=job_config)
         load_job.result()
