@@ -63,7 +63,6 @@ def weather_pipeline():
             print(f"Timezone: {response.Timezone()}{response.TimezoneAbbreviation()}")
             print(f"Timezone difference to GMT+0: {response.UtcOffsetSeconds()}s")
             
-            # Process daily data. The order of variables needs to be the same as requested.
             daily = response.Daily()
             daily_temperature_2m_max = daily.Variables(0).ValuesAsNumpy()
             daily_temperature_2m_min = daily.Variables(1).ValuesAsNumpy()
