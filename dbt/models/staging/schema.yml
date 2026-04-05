@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: stg_weather
+    description: "Staging layer for cleaned and formatted weather data"
+    columns:
+      - name: date_value
+        description: "Date of the weather forecast"
+        data_tests:
+          - not_null:
+              severity: error
+      
+      - name: city_name
+        description: "City name for the weather forecast"
+        data_tests:
+          - not_null:
+              severity: error
+      
+      - name: temperature_2m_max
+        description: "Maximum temperature at 2 meters in Celsius"
+        data_tests:
+          - not_null:
+              severity: error
+      
+      - name: temperature_2m_min
+        description: "Minimum temperature at 2 meters in Celsius"
+        data_tests:
+          - not_null:
+              severity: error
+      
+      - name: sunrise
+        description: "Time of sunrise in formatted YYYY-MM-DD HH:MM"
+        data_tests:
+          - not_null:
+              severity: warn
+      
+      - name: sunset
+        description: "Time of sunset in formatted YYYY-MM-DD HH:MM"
+        data_tests:
+          - not_null:
+              severity: warn

@@ -1,0 +1,41 @@
+version: 2
+
+models:
+  - name: mart_weather_monthly
+    description: "Monthly aggregated weather statistics per city"
+    columns:
+      - name: city_name
+        description: "City name"
+        data_tests:
+          - not_null:
+              severity: error
+
+      - name: year
+        description: "Year of the aggregation"
+        data_tests:
+          - not_null:
+              severity: error
+
+      - name: month
+        description: "Month of the aggregation"
+        data_tests:
+          - not_null:
+              severity: error
+
+      - name: avg_temperature_2m_max
+        description: "Average of daily maximum temperatures for the month"
+        data_tests:
+          - not_null:
+              severity: error
+
+      - name: avg_temperature_2m_min
+        description: "Average of daily minimum temperatures for the month"
+        data_tests:
+          - not_null:
+              severity: error
+
+      - name: avg_diff_minutes
+        description: "Average daily daylight duration in minutes for the month"
+        data_tests:
+          - not_null:
+              severity: warn
