@@ -45,6 +45,18 @@ services:
       interval: 10s
       retries: 5
 
+  dbt-bigquery:
+    image: ghcr.io/dbt-labs/dbt-bigquery:latest
+    entrypoint: ["/bin/bash", "-c"]
+    command: ["tail -f /dev/null"] 
+    working_dir: /dbt
+    volumes:
+      - ./dbt:/dbt
+      - ./credentials:/dbt/credentials
+    environment:
+      GOOGLE_APPLICATION_CREDENTIALS: /dbt/credentials/gcp-credentials.json
+      DBT_PROFILES_DIR: /dbt
+
   airflow-init:
     <<: *airflow-common
     command: airflow db init

@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: raw_data
+    description: "Raw data sources for the weather ETL pipeline"
+    database: weather-etl-pipeline-492117
+    schema: weather
+    tables:
+      - name: forecast
+        description: "Raw weather forecast data from Open-Meteo API"
+        columns:
+          - name: date
+            description: "Date of the weather forecast"
+          - name: city
+            description: "City for which the weather forecast is provided"
+          - name: temperature_2m_max
+            description: "Maximum temperature at 2 meters above ground level"
+          - name: temperature_2m_min
+            description: "Minimum temperature at 2 meters above ground level"
+          - name: sunrise
+            description: "Time of sunrise in UNIX timestamp format"
+          - name: sunset
+            description: "Time of sunset in UNIX timestamp format"
