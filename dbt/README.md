@@ -1,15 +1,24 @@
-Welcome to your new dbt project!
+# Weather dbt Project
 
-### Using the starter project
+dbt transformation layer for the Weather ETL Pipeline.
 
-Try running the following commands:
-- dbt run
-- dbt test
+## Models
 
+- `staging/stg_weather` — cleans and formats raw weather data from BigQuery
+- `marts/mart_weather_monthly` — monthly aggregations per city (avg temperatures, daylight duration)
 
-### Resources:
-- Learn more about dbt [in the docs](https://docs.getdbt.com/docs/introduction)
-- Check out [Discourse](https://discourse.getdbt.com/) for commonly asked questions and answers
-- Join the [chat](https://community.getdbt.com/) on Slack for live discussions and support
-- Find [dbt events](https://events.getdbt.com) near you
-- Check out [the blog](https://blog.getdbt.com/) for the latest news on dbt's development and best practices
+## Usage
+```bash
+# Run all models
+dbt run
+
+# Run tests
+dbt test
+
+# Run specific model
+dbt run --select stg_weather
+```
+
+## Connection
+
+Connects to BigQuery using a service account. See `profiles.yml` for configuration.
